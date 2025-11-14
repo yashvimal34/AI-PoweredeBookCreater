@@ -1,0 +1,5 @@
+
+            <div className="relative bg-gradient-to-br from-violet-50 via-white to-purple-50 overflow-hidden">
+
+<div className="absolute -top-8 -left-8 w-20 h-20 bg-violet-400/20 rounded-2xl rotate-12"></div>
+            <div className="absolute bottom-6 -right-6 w-32 h-32 bg-purple-400/20 rounded-full"></div>
