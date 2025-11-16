@@ -1,11 +1,11 @@
-import { LightBulb, BookOpen, Download, Library } from "lucide-react";
+import { Lightbulb, BookOpen, Download, Library } from "lucide-react";
 
 export const FEATURES = [
     {
         title: "AI-Powered Writing",
         description:
             "Overcome writer's block with our smart assistant that helps you generate ideas, oulines, and content.",
-        icon: LightBulb,
+        icon: Lightbulb,
         gradient: "from-violet-500 to-purple-600",
     },
     {
