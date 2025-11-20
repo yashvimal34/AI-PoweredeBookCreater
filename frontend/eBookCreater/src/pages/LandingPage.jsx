@@ -6,7 +6,7 @@ import Navbar from "../components/layout/Navbar"
 
 const LandingPage = () => {
     return (
-        <div className="mb-[100vh]">
+        <div>
             <Navbar />
             <Hero />
             <Features />

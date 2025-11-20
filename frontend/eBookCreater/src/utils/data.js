@@ -4,24 +4,28 @@ export const FEATURES = [
     {
         title: "AI-Powered Writing",
         description:
-            "Overcome writer's block with our smart assistant that helps you generate ideas, oulines, and content.",
+            "Overcome writer's block with our smart assistant that helps you generate ideas, outlines, and content.",
         icon: Lightbulb,
         gradient: "from-violet-500 to-purple-600",
     },
     {
         title: "Immersive Reader",
-        description: "Preview you ebook in a clean, read-only format. Adjust font sizes for a comfortable reading experince before you export",
+        description:
+            "Preview your ebook in a clean, read-only format. Adjust font sizes for a comfortable reading experience before you export.",
         icon: BookOpen,
         gradient: "from-blue-500 to-cyan-600",
     },
     {
         title: "One-Click-Export",
-        description: "Export your ebook to PDF, and DOCX formats instantly, ready for publishing",
+        description:
+            "Export your ebook to PDF and DOCX formats instantly, ready for publishing.",
         icon: Download,
+        gradient: "from-yellow-500 to-amber-600",   // fixed
     },
     {
         title: "eBook Management",
-        description: "Organise all your ebook projects in a pesonal dashboard. Easily track progress, edit drafts, and manage your library.",
+        description:
+            "Organise all your ebook projects in a personal dashboard. Track progress, edit drafts, and manage your library.",
         icon: Library,
         gradient: "from-pink-500 to-rose-600",
     },
