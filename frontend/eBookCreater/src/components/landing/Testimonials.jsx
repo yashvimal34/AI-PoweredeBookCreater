@@ -7,7 +7,7 @@ const Testimonials = () => {
         <div id="" className="relative py-24 lg:py-32 bg-gradient-to-br from-violet-50 via-purple-50 to-white overflow-hidden">
             {/* Decorative elements */}
             <div className="absolute top-20 right-10 w-64 h-64 bg-violet-200/30 rounded-full blur-3xl"></div>
-            <div className="aboslute bottom-20 left-10 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-20 left-10 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl"></div>
 
             <div className="max-w-7xl mx-auto px-6 lg:px-8 relative">
                 {/* Header */}
