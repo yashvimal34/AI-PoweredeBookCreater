@@ -1,9 +1,9 @@
 import React from "react";
 
-const Button = ({ varient = "primary", size = "md", isLoading = false, children, icon: Icon, className = "", ...props }) => {
+const Button = ({ variant = "primary", size = "md", isLoading = false, children, icon: Icon, className = "", ...props }) => {
 
     const variants = {
-        primary: "bg-gradient-to-r from-violet-400 to-violet-500 hover:bg-violet-700 text-white shadow-sm hover:shadow-md",
+        primary: "bg-gradient-to-r from-violet-400 to-violet-500 hover:from-violet-500 hover:to-violet-600 text-white shadow-md hover:shadow-lg",
         secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700",
         ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
         danger: "bg-transparent hover:bg-red-50 text-red-600"
@@ -16,7 +16,7 @@ const Button = ({ varient = "primary", size = "md", isLoading = false, children,
     };
 
     return (
-        <button className={`inline-flex items-center justify-center font-medium transition-all duration-200 focus-outline-none focus-ring-2 focus:ring-violet-50 focus:ring-offset-2 disabled-opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${varient[varient]} ${sizes[size]} ${className}`}
+        <button className={`inline-flex items-center justify-center font-medium transition-all duration-200 focus-outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${variants[variant]} ${sizes[size]} ${className}`}
 
             disabled={isLoading}
             {...props}
