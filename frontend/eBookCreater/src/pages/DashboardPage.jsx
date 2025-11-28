@@ -152,10 +152,9 @@ const DashboardPage = () => {
                     onConfirm={handleDeleteBook}
                     title="Delete Book"
                     message="Are sure you want to delete this book. This action cannot not be undone." />
-
                 <CreateBookModal
                     isOpen={isCreatedModalOpen}
-                    onClose={() => setBookToDelete(null)}
+                    onClose={() => setIsCreatedModalOpen(false)}
                     onBookCreated={handleBookCreated} />
             </div>
         </DashboardLayout>
