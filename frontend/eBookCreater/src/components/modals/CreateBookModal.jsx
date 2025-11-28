@@ -6,8 +6,8 @@ import {
     ArrowLeft,
     BookOpen,
     Hash,
-    LightBulb,
     Palette,
+    Lightbulb,
 } from "lucide-react";
 
 import Modal from "../ui/Modal";
@@ -44,7 +44,7 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
         setIsFinalizingBook(false);
     };
 
-    const handleGenerativeOutline = async () => { };
+    const handleGenerateOutline = async () => { };
 
     const handleChaptersChange = (index, field, value) => {
         const updatedChpaters = [...chapters];
@@ -82,7 +82,124 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
             }}
             title="Create New Modal"
         >
-            Content Here
+            {step === 1 && (
+                <div className="space-y-5">
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-100 text-violet-600 text-sm font-semibold">
+                            1
+                        </div>
+                        <div className="flex-1 h-0.8 bg-gray-200"></div>
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-sm font-semibold">
+                            2
+                        </div>
+                    </div>
+
+                    <InputField
+                        icon={BookOpen}
+                        label="Book Title"
+                        placeholder="Enter Your Title Book Title..."
+                        value={bookTitle}
+                        onChange={(e) => setBookTitle(e.target.value)} />
+
+                    <InputField
+                        icon={Hash}
+                        label="Number of Chpaters"
+                        type="number"
+                        placeholder="5"
+                        value={numChapters}
+                        onChange={(e) => setNumChatpers(parseInt(e.target.value) || 1)}
+                        min="1"
+                        max="20"
+                    />
+
+                    <InputField
+                        icon={Lightbulb}
+                        label="Topic (Optional)"
+                        placeholder="Specific topic for AI generation..."
+                        value={aiTopic}
+                        onChange={(e) => setAiTopic(e.target.value)}
+                    />
+
+                    <SelectField
+                        icon={Palette}
+                        label="Writing Style"
+                        value={aiStyle}
+                        onChange={(e) => setAiStyle(e.target.value)}
+                        options={[
+                            "Informative",
+                            "Storytelling",
+                            "Casual",
+                            "Professional",
+                            "Humorous",
+                        ]}
+                    />
+
+                    <div className="flex justify-end pt-4">
+                        <Button onCLick={handleGenerateOutline} isLoading={isGeneratingOutline} icon={Sparkles}>
+                            Generate Outline with AI
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {step === 2 && (
+                <div className="">
+                    {/* Progress indicator */}
+                    <div className="">
+                        <div className="">
+                            ✓
+                        </div>
+                        <div className=""></div>
+                        <div className="">
+                            2
+                        </div>
+                    </div>
+
+                    <div className="">
+                        <h3 className="">
+                            Review Chpaters
+                        </h3>
+                        <span className="">
+                            {chapters.length} chapters
+                        </span>
+                    </div>
+
+                    <div ref={chaptersContainerRef} className="">
+                        {chapters.length === 0 ? (
+                            <div className="">
+                                <BookOpen className="" />
+                                <p className="">
+                                    No chpaters yet. Add one to get started.
+                                </p>
+                            </div>
+
+                        ) : (
+                            chapters.map((chapter, index) => (
+                                <div key={index} className="">
+                                    <div className="">
+                                        <div className="">
+                                            {index + 1}
+                                        </div>
+                                        <input type="text"
+                                            value={chapter.title}
+                                            onChange={(e) => handleChaptersChange(index, "title", e.target.value)}
+                                            placeholder="Chpater Title"
+                                            className=""
+                                        />
+                                        <button onClick={() => handleDeleteChapter(index)}
+                                            className=""
+                                            title="Delete Chapter"
+                                        >
+                                            <Trash2 className="" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+
+                    </div>
+                </div>
+            )}
         </Modal>
     )
 }
