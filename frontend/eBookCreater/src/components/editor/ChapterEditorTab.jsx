@@ -130,7 +130,7 @@ const ChapterEditorTab = ({
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
-                <div className="h-full bg-white px-8 py-6">
+                <div className="h-full bg-white px-6 py-4">
                     <div className="h-full bg-white">
                         <div className="space-y-6 h-full flex flex-col">
                             {/* Chapter Title */}
@@ -142,6 +142,50 @@ const ChapterEditorTab = ({
                                     placeholder="Enter chapter title..."
                                     className="text-xl font-semibold" />
                             </div>
+
+                            {/* Editors preview area */}
+                            <div className="flex-1 min-h-0">
+                                {isPreviewMode ? (
+                                    <div className="h-full border border-gray-200 rounded-lg overflow-y-auto">
+                                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <Eye className="w-4 h-4" />
+                                                <span>Preview Mode</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-8">
+                                            <h1 className="text-3xl font-bold mb-6 text-gray-900">{currentChapter.title || 'Untitled Chapter'}</h1>
+                                            <div className="formatted-content" style={{
+                                                fontFamily: 'Charter, Georgia, "Times New Roman", serif',
+                                                lineHeight: 1.7
+                                            }} dangerouslySetInnerHTML={{
+                                                __html: currentChapter.content ? formatMarkdown(currentChapter.content) : '<p class="text-gray-400 italic">No Content yet. Start writing to see the preview.</p>'
+                                            }} />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full">
+                                        <SimpleMDEditor value={currentChapter.content || ""}
+                                            onChange={(value) => onChapterChange({ target: { name: "content", value } })}
+                                            options={mdeOptions} />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Status Bar */}
+                            <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
+                                <div className="flex items-center gap-4">
+                                    <span>Words: {currentChapter.content ? currentChapter.content.split(/\s+/).filter(word => word.length > 0).length : 0}</span>
+                                    <span>
+                                        Characters: {currentChapter.content ? currentChapter.content.length : 0}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Auto saved</span>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
