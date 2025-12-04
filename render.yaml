@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ebook-backend
+    rootDir: backend
+    env: node
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: ebook-frontend
+    rootDir: frontend
+    env: static
+    buildCommand: "npm run build"
+    staticPublishPath: "dist"
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: "https://ebook-backend.onrender.com" # update after first deploy
