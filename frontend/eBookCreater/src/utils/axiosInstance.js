@@ -31,13 +31,14 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         // Handle common errors in globally
-        if (error.message) {
-            if (error.response.status === 500) {
-                console.error("Sever error. Please try again later.");
-            }
+        if (error.response) {
+            if (error.response.status === 500) console.error("Server error. Try later.");
         } else if (error.code === "ECONNABORTED") {
-            console.error("Request timeout. Please try again.")
+            console.error("Request timeout.");
+        } else {
+            console.error("Network or CORS issue.");
         }
+
         return Promise.reject(error);
     }
 );
