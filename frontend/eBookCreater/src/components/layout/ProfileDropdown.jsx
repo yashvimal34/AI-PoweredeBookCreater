@@ -47,7 +47,6 @@ const ProfileDropdown = ({
 
                     <div className="border border-gray-100 mt-2 pt-2">
                         <a
-                            href="#"
                             onClick={() => {
                                 onLogout();      // logout immediately
                             }}
