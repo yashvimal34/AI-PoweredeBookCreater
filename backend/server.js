@@ -26,9 +26,6 @@ connectDB();
 // Middleware
 app.use(express.json());
 
-// Static folder for uploads
-app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
-
 // Routes Here
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);

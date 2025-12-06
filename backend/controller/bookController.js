@@ -113,27 +113,24 @@ const updateBookCover = async (req, res) => {
     try {
         const book = await Book.findById(req.params.id);
 
-        if (!book) {
-            return res.status(404).json({ message: "Book not found" });
-        }
+        if (!book) return res.status(404).json({ message: "Book not found" });
 
         if (book.userId.toString() !== req.user._id.toString()) {
             return res.status(401).json({ message: "Not authorised to update this book" });
         }
 
-        if (req.file) {
-            book.coverImage = `/${req.file.path}`;
-        } else {
-            return res.status(400).json({ message: "No Image file provided" });
-        }
+        if (!req.file) return res.status(400).json({ message: "No image uploaded" });
 
-        const updateBook = await book.save();
+        book.coverImage = req.file.path;  // Cloudinary URL direct
 
-        res.status(200).json(updateBook);
+        const updated = await book.save();
+        return res.status(200).json(updated);
+
     } catch (error) {
-        res.status(500).json({ message: "Server Error" });
+        return res.status(500).json({ message: "Server error" });
     }
 };
+
 
 module.exports = {
     createBook,
