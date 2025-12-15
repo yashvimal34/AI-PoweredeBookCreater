@@ -8,6 +8,7 @@ import Button from "../components/ui/Button";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
+import Google from '../assets/google.webp';
 
 const LoginPage = () => {
 
@@ -80,6 +81,11 @@ const LoginPage = () => {
                         />
                         <Button type="submit" isLoading={isLoading} className="w-full">
                             Sign In
+                        </Button>
+
+                        <Button variant="outline" className="w-full border-gray">
+                            <img src={Google} alt="" className="w-5" />
+                            Login with Google
                         </Button>
                     </form>
 
