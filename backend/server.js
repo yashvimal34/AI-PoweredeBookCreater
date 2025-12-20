@@ -14,6 +14,8 @@ const exportRoutes = require("./routes/exportRoutes");
 
 const app = express();
 
+app.set("trust proxy", 1); // ✅ ADD THIS
+
 // Middleware
 app.use(
   cors({
