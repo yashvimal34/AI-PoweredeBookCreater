@@ -64,7 +64,7 @@ const Navbar = () => {
                             companyName={user?.name || ""}
                             email={user?.email || ""}
                             userRole={user?.role || ""}
-                            onLogout={() => console.log("Logout")}
+                            onLogout={logout} 
                         />
                     ) : (
                         <>

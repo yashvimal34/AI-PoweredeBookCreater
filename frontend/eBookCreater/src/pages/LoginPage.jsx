@@ -7,7 +7,7 @@ import InputField from "../components/ui/InputField";
 import Button from "../components/ui/Button";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
-import { API_PATHS } from "../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../utils/apiPaths";
 import Google from '../assets/google.webp';
 
 const LoginPage = () => {
@@ -83,10 +83,19 @@ const LoginPage = () => {
                             Sign In
                         </Button>
 
-                        <Button variant="outline" className="w-full border-gray">
-                            <img src={Google} alt="" className="w-5" />
-                            Login with Google
-                        </Button>
+<Button
+  type="button"
+  onClick={() => {
+    window.location.href = `${BASE_URL}/api/auth/google`;
+  }}
+  variant="outline"
+  className="w-full flex items-center justify-center gap-3 border border-slate-300 bg-white hover:bg-slate-50"
+>
+  <img src={Google} alt="Google" className="w-5 h-5" />
+  <span className="font-medium">Continue with Google</span>
+</Button>
+
+
                     </form>
 
                     <p className="text-center text-sm text-slate-600 mt-8">
