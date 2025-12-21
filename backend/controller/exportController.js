@@ -51,7 +51,7 @@ const processMarkdownToDocx = (markdown) => {
     let orderedCounter = 1;
 
     for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[1];
+        const token = tokens[i];
 
         try {
             if (token.type === "heading_open") {
@@ -98,10 +98,10 @@ const processMarkdownToDocx = (markdown) => {
                     i += 2; // Skip inline and heading_close
                 }
             } else if (token.type === "paragraph_open") {
-                const nextToken = token[i + 1];
+                const nextToken = tokens[i + 1];
 
                 if (nextToken && nextToken.type === "inline" && nextToken.children) {
-                    const textRuns = processMarkdownToDocx(nextToken.children);
+                    const textRuns = processInlineContent(nextToken.children); // ✅ FIXED
 
                     if (textRuns.length > 0) {
                         paragraphs.push(
@@ -117,7 +117,7 @@ const processMarkdownToDocx = (markdown) => {
                         );
                     }
 
-                    i + 2;
+                    i += 2;
                 }
             } else if (token.type === "bullet_list_open") {
                 inList = true;
@@ -140,7 +140,7 @@ const processMarkdownToDocx = (markdown) => {
                 const nextToken = tokens[i + 1];
 
                 if (nextToken && nextToken.type === "paragraph_open") {
-                    const inlineToken = token[i + 2];
+                    const inlineToken = tokens[i + 2];
 
                     if (
                         inlineToken &&
@@ -174,11 +174,11 @@ const processMarkdownToDocx = (markdown) => {
                         i += 4; // Skip paragraph_open, inline, paragraph_close, list_item_close
                     }
                 }
-            } else if (token.type === "blackquote_open") {
-                // Find the blackquote content
+            } else if (token.type === "blockquote_open") {
+                // Find the blockquote content
                 const nextToken = tokens[i + 1];
                 if (nextToken && nextToken.type === "paragraph_open") {
-                    const inlineToken = tokens[i + 2];
+                    const nextToken = tokens[i + 2];
                     if (inlineToken && inlineToken.type === "inline") {
                         paragraphs.push(
                             new Paragraph({
@@ -305,45 +305,58 @@ const exportAsDocument = async (req, res) => {
         const sections = [];
 
         // Cover page with image if available
-        const coverPage = [];
+        // Cover page with image if available
+const coverPage = [];
 
-        if (book.coverImage && !book.coverImage.includes("pravatar")) {
-            const imagePath = book.coverImage.substring(1);
-            const imageBuffer = fs.readFileSync(imagePath);
+if (
+  book.coverImage &&
+  !book.coverImage.includes("pravatar") &&
+  !book.coverImage.startsWith("http")
+) {
+  try {
+    // ✅ FIXED: resolve correct absolute path
+// ✅ FINAL FIX: normalize cover image path for DOCX
+const normalizedPath = book.coverImage.startsWith("/")
+  ? book.coverImage.slice(1)
+  : book.coverImage;
 
-            // Add some top spacing
-            coverPage.push(
-                new Paragraph({
-                    text: "",
-                    spacing: { before: 1000 },
-                })
-            );
+const imagePath = path.resolve(__dirname, "..", "..", normalizedPath); // FIX
+const imageBuffer = fs.readFileSync(imagePath);
 
-            // Add cover image centered on page
-            coverPage.push(
-                new Paragraph({
-                    children: [
-                        new ImageRun({
-                            data: imageBuffer,
-                            transformation: {
-                                width: 400, // Width in pixels
-                                height: 550, // Height in pixels
-                            },
-                        }),
-                    ],
-                    alignment: AlignmentType.CENTER,
-                    spacing: { before: 200, after: 400 },
-                })
-            );
+    coverPage.push(
+      new Paragraph({
+        text: "",
+        spacing: { before: 1000 },
+      })
+    );
 
-            // Page break after cover
-            coverPage.push(
-                new Paragraph({
-                    text: "",
-                    pageBreakBefore: true,
-                })
-            );
-        }
+    coverPage.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: imageBuffer,
+            transformation: {
+              width: 400,
+              height: 550,
+            },
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 400 },
+      })
+    );
+
+    coverPage.push(
+      new Paragraph({
+        text: "",
+        pageBreakBefore: true,
+      })
+    );
+  } catch (err) {
+    console.warn("Cover image skipped for DOC export:", err.message);
+  }
+}
+
 
         sections.push(...coverPage);
 
@@ -425,13 +438,14 @@ const exportAsDocument = async (req, res) => {
             try {
                 // Page break before each chapter (except first)
                 if (index > 0) {
-                    sections.push(
-                        new Paragraph({
-                            text: "",
-                            pageBreakBefore: true,
-                        })
-                    );
-                }
+  sections.push(
+    new Paragraph({
+      children: [new TextRun({ break: 1 })],
+      pageBreakBefore: true,
+    })
+  );
+}
+
 
                 // Chapter Title
                 sections.push(
