@@ -5,18 +5,16 @@ const nodemailer = require("nodemailer");
  */
 const sendEmail = async ({ to, subject, text }) => {
   try {
-    // Create transporter
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: process.env.EMAIL_PORT == 465, // true for 465, false for others
+      port: Number(process.env.EMAIL_PORT),
+      secure: false, // IMPORTANT for Gmail + Render
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Send mail
     await transporter.sendMail({
       from: `"AI eBook Creator" <${process.env.EMAIL_FROM}>`,
       to,

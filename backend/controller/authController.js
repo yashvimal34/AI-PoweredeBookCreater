@@ -170,11 +170,17 @@ exports.resendEmailOTP = async (req, res) => {
     user.emailVerificationExpires = Date.now() + 2 * 60 * 1000;
     await user.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "Resend OTP - Verify your email",
-      text: `Your new verification code is ${otp}. It expires in 2 minutes.`,
-    });
+    await Promise.race([
+  sendEmail({
+    to: user.email,
+    subject: "Resend OTP - Verify your email",
+    text: `Your new verification code is ${otp}. It expires in 2 minutes.`,
+  }),
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Email timeout")), 10000)
+  ),
+]);
+
 
     res.json({ success: true, message: "OTP resent successfully" });
   } catch (error) {
