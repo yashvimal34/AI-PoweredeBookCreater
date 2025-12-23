@@ -9,6 +9,8 @@ import EditorPage from "./pages/EditorPage";
 import ViewBookPage from "./pages/ViewBookPage";
 import ProfilePage from "./pages/ProfilePage";
 import AuthSuccess from "./pages/AuthSuccess";
+import VerifyEmail from "./pages/VerifyEmail";
+
 
 const App = () => {
   return (
@@ -19,6 +21,8 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth-success" element={<AuthSuccess />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

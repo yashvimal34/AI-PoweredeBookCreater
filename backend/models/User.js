@@ -34,6 +34,22 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // Email verification fields
+    isEmailVerified: {
+      type: Boolean,
+      default: function () {
+        // Google user are already verified
+        return !!this.googleId;
+      },
+    },
+    emailVerificationOTP: {
+      type: String,
+      select: false, // never expose OTP
+    },
+    emailVerificationExpires: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
