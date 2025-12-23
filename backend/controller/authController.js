@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-const sendEmail = require("../utils/sendEmail"); // 🔹 OTP EMAIL UTILITY
+const sendEmail = require("../utils/sendEmail");
 
 // ======================================================
 // Helper: Generate JWT
@@ -20,9 +20,7 @@ const generateOTP = () => {
 };
 
 // ======================================================
-// @desc Register new user (MANUAL SIGNUP WITH OTP)
-// @route POST /api/auth/register
-// @access Public
+// REGISTER USER (MANUAL SIGNUP WITH OTP)
 // ======================================================
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -32,17 +30,11 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "Please fill all fields" });
     }
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // ======================================================
-    // 🔐 OTP IMPLEMENTATION START
-    // ======================================================
-
-    // Create user as UNVERIFIED
     const user = await User.create({
       name,
       email,
@@ -50,31 +42,25 @@ exports.registerUser = async (req, res) => {
       isEmailVerified: false,
     });
 
-    // Generate OTP
     const otp = generateOTP();
-
-    // Hash OTP before saving
     const hashedOTP = await bcrypt.hash(otp, 10);
 
-    // Save OTP + expiry (10 minutes)
     user.emailVerificationOTP = hashedOTP;
-    user.emailVerificationExpires = Date.now() + 2 * 60 * 1000;
+    user.emailVerificationExpires = new Date(Date.now() + 2 * 60 * 1000);
     await user.save();
 
-    // Send OTP email
-    await sendEmail({
+    // 🔥 NON-BLOCKING EMAIL SEND (CRITICAL FIX)
+    sendEmail({
       to: user.email,
       subject: "Verify your email",
       text: `Your verification code is ${otp}. It expires in 2 minutes.`,
+    }).catch((err) => {
+      console.error("Email send failed:", err.message);
     });
-
-    // ======================================================
-    // 🔐 OTP IMPLEMENTATION END
-    // ======================================================
 
     return res.status(201).json({
       success: true,
-      message: "OTP sent to your email. Please verify to continue.",
+      message: "OTP sent to your email. Please verify.",
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -83,9 +69,7 @@ exports.registerUser = async (req, res) => {
 };
 
 // ======================================================
-// @desc Verify Email OTP
-// @route POST /api/auth/verify-email
-// @access Public
+// VERIFY EMAIL OTP
 // ======================================================
 exports.verifyEmailOTP = async (req, res) => {
   const { email, otp } = req.body;
@@ -96,7 +80,7 @@ exports.verifyEmailOTP = async (req, res) => {
     }
 
     const user = await User.findOne({ email }).select(
-      "+emailVerificationOTP"
+      "+emailVerificationOTP +emailVerificationExpires"
     );
 
     if (!user) {
@@ -107,29 +91,29 @@ exports.verifyEmailOTP = async (req, res) => {
       return res.status(400).json({ message: "Email already verified" });
     }
 
+    // ⛔ HARD EXPIRY CHECK (FIXED)
     if (
       !user.emailVerificationExpires ||
-      user.emailVerificationExpires < Date.now()
+      user.emailVerificationExpires.getTime() < Date.now()
     ) {
       return res.status(400).json({ message: "OTP expired" });
     }
 
-    const isOTPValid = await bcrypt.compare(
+    const isValid = await bcrypt.compare(
       otp,
       user.emailVerificationOTP
     );
 
-    if (!isOTPValid) {
+    if (!isValid) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // Mark email as verified
     user.isEmailVerified = true;
     user.emailVerificationOTP = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: "Email verified successfully",
       token: generateToken(user._id),
@@ -141,9 +125,7 @@ exports.verifyEmailOTP = async (req, res) => {
 };
 
 // ======================================================
-// @desc Resend Email OTP
-// @route POST /api/auth/resend-otp
-// @access Public
+// RESEND OTP
 // ======================================================
 exports.resendEmailOTP = async (req, res) => {
   const { email } = req.body;
@@ -167,33 +149,30 @@ exports.resendEmailOTP = async (req, res) => {
     const hashedOTP = await bcrypt.hash(otp, 10);
 
     user.emailVerificationOTP = hashedOTP;
-    user.emailVerificationExpires = Date.now() + 2 * 60 * 1000;
+    user.emailVerificationExpires = new Date(Date.now() + 2 * 60 * 1000);
     await user.save();
 
+    // ⏱ HARD 10s TIMEOUT
     await Promise.race([
-  sendEmail({
-    to: user.email,
-    subject: "Resend OTP - Verify your email",
-    text: `Your new verification code is ${otp}. It expires in 2 minutes.`,
-  }),
-  new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Email timeout")), 10000)
-  ),
-]);
-
+      sendEmail({
+        to: user.email,
+        subject: "Resend OTP - Verify your email",
+        text: `Your new verification code is ${otp}. It expires in 2 minutes.`,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Email timeout")), 10000)
+      ),
+    ]);
 
     res.json({ success: true, message: "OTP resent successfully" });
   } catch (error) {
-    console.error("Resend OTP error:", error);
+    console.error("Resend OTP error:", error.message);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
-
 // ======================================================
-// @desc Login User
-// @route POST /api/auth/login
-// @access Public
+// LOGIN USER
 // ======================================================
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -205,37 +184,37 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 🚫 Block login if email not verified (manual users only)
+    // 🚫 BLOCK UNVERIFIED MANUAL USERS
     if (!user.isEmailVerified && !user.googleId) {
       return res
         .status(403)
         .json({ message: "Please verify your email first" });
     }
 
-    if (await user.matchPassword(password)) {
-      res.json({
-        message: "Login successful",
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid credentials" });
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    res.json({
+      message: "Login successful",
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
 };
 
 // ======================================================
-// @desc Get current logged-in user
-// @route GET /api/auth/profile
-// @access Private
+// GET PROFILE
 // ======================================================
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+
     res.json({
       _id: user._id,
       name: user.name,
@@ -249,25 +228,23 @@ exports.getProfile = async (req, res) => {
 };
 
 // ======================================================
-// @desc Update user profile
-// @route PUT /api/auth/profile
-// @access Private
+// UPDATE PROFILE
 // ======================================================
 exports.updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      const updatedUser = await user.save();
-
-      res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-      });
-    } else {
-      res.status(404).json({ message: "User Not Found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    user.name = req.body.name || user.name;
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
