@@ -7,11 +7,21 @@ const {
   loginUser,
   getProfile,
   updateUserProfile,
+
+  // 🔐 OTP: VERIFY EMAIL CONTROLLER (NEW)
+  verifyEmailOTP,
+  resendEmailOTP,
+  // 🔐 OTP: VERIFY EMAIL CONTROLLER (END)
+
 } = require("../controller/authController");
 
 const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
+
+// ======================================================
+// Google OAuth Routes (UNCHANGED)
+// ======================================================
 
 // Google login
 router.get(
@@ -43,11 +53,35 @@ router.get(
   }
 );
 
-// Normal auth
+// ======================================================
+// Normal Auth Routes (UNCHANGED)
+// ======================================================
+
+// Manual signup (OTP is handled inside controller)
 router.post("/register", registerUser);
+
+// Login (blocks unverified users inside controller)
 router.post("/login", loginUser);
 
-// Protected routes
+// ======================================================
+// 🔐 OTP ROUTE START (NEW)
+// ======================================================
+
+// Verify email OTP (manual signup only)
+router.post("/verify-email", verifyEmailOTP);
+
+// ======================================================
+// 🔐 OTP ROUTE END
+// ======================================================
+
+// 🔐 Resend OTP
+router.post("/resend-otp", resendEmailOTP);
+
+
+// ======================================================
+// Protected Routes (UNCHANGED)
+// ======================================================
+
 router.get("/me", protect, (req, res) => {
   res.json({ success: true, user: req.user });
 });

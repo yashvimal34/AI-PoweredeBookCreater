@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 
 import InputField from "../components/ui/InputField";
 import Button from "../components/ui/Button";
-import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../utils/apiPaths";
 import Google from "../assets/g1.png";
@@ -19,36 +18,23 @@ const SignupPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ✅ OTP-CORRECT SIGNUP HANDLER
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await axiosInstance.post(
-        API_PATHS.AUTH.REGISTER,
-        formData
-      );
-      const { token } = response.data;
+      await axiosInstance.post(API_PATHS.AUTH.REGISTER, formData);
 
-      const profileResponse = await axiosInstance.get(
-        API_PATHS.AUTH.GET_PROFILE,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      login(profileResponse.data, token);
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+      toast.success("OTP sent to your email");
+      navigate("/verify-email"); // 🔐 OTP verification step
     } catch (error) {
-      console.error("Signup error:", error.response?.data);
       toast.error(
         error.response?.data?.message || "Signup failed. Try again later"
       );
