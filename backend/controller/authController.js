@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const User = require("../models/User");
 const sendEmail = require("../utils/sendEmail");
 
@@ -13,113 +13,159 @@ const generateToken = (id) => {
 };
 
 // ======================================================
-// Helper: Generate 6-digit OTP
-// ======================================================
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-// ======================================================
-// REGISTER USER (MANUAL SIGNUP WITH OTP)
+// REGISTER → SEND OTP
 // ======================================================
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Please fill all fields" });
+    let user = await User.findOne({ email });
+
+    if (user && user.isEmailVerified) {
+      return res.status(400).json({ message: "Email already registered" });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    if (!user) {
+      user = await User.create({ name, email, password });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      isEmailVerified: false,
-    });
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    const otp = generateOTP();
-    const hashedOTP = await bcrypt.hash(otp, 10);
-
-    user.emailVerificationOTP = hashedOTP;
-    user.emailVerificationExpires = new Date(Date.now() + 2 * 60 * 1000);
+    user.emailOtp = hashedOtp;
+    user.emailOtpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // 🔥 NON-BLOCKING EMAIL SEND (CRITICAL FIX)
-    sendEmail({
+    await sendEmail({
       to: user.email,
-      subject: "Verify your email",
-      text: `Your verification code is ${otp}. It expires in 2 minutes.`,
-    }).catch((err) => {
-      console.error("Email send failed:", err.message);
+      subject: "Verify your email - OTP",
+      html: `
+  <div style="font-family: Arial, Helvetica, sans-serif; background-color:#f6f9fc; padding:40px 0;">
+    <table width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center">
+          <table width="100%" max-width="480" cellspacing="0" cellpadding="0"
+            style="background:#ffffff; border-radius:8px; padding:32px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+            
+            <!-- Logo -->
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <img 
+                  src="https://res.cloudinary.com/dsmzpe5fo/image/upload/v1766946846/AI_E-book_ddhtlh.png"
+                  alt="AI eBook Creator"
+                  height="40"
+                  style="display:block;"
+                />
+              </td>
+            </tr>
+
+            <!-- Title -->
+            <tr>
+              <td style="color:#111827; font-size:20px; font-weight:600; padding-bottom:12px;">
+                Verify your email address
+              </td>
+            </tr>
+
+            <!-- Message -->
+            <tr>
+              <td style="color:#374151; font-size:14px; line-height:22px; padding-bottom:24px;">
+                Use the verification code below to complete your sign-up for
+                <strong>AI eBook Creator</strong>.  
+                This code is valid for the next <strong>10 minutes</strong>.
+              </td>
+            </tr>
+
+            <!-- OTP Box -->
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <div
+                  style="
+                    display:inline-block;
+                    background:#f3f4f6;
+                    padding:14px 24px;
+                    font-size:28px;
+                    font-weight:700;
+                    letter-spacing:6px;
+                    color:#111827;
+                    border-radius:6px;
+                  "
+                >
+                  ${otp}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Security note -->
+            <tr>
+              <td style="color:#6b7280; font-size:13px; line-height:20px; padding-bottom:24px;">
+                If you did not request this code, you can safely ignore this email.
+                For your security, never share this code with anyone.
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="border-top:1px solid #e5e7eb; padding-top:16px; color:#9ca3af; font-size:12px;">
+                © ${new Date().getFullYear()} AI eBook Creator  
+                <br />
+                <a href="https://ai-poweredebookcreater-1.onrender.com" style="color:#6b7280; text-decoration:none;">
+                  https://ai-poweredebookcreater-1.onrender.com
+                </a>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+`,
     });
 
-    return res.status(201).json({
+    res.json({
       success: true,
-      message: "OTP sent to your email. Please verify.",
+      message: "OTP sent to email",
     });
   } catch (error) {
-    console.error("Register error:", error);
+    console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
 // ======================================================
-// VERIFY EMAIL OTP
+// VERIFY OTP
 // ======================================================
-exports.verifyEmailOTP = async (req, res) => {
+exports.verifyEmailOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required" });
-    }
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    const user = await User.findOne({ email }).select(
-      "+emailVerificationOTP +emailVerificationExpires"
-    );
+    const user = await User.findOne({
+      email,
+      emailOtp: hashedOtp,
+      emailOtpExpires: { $gt: Date.now() },
+    });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    if (user.isEmailVerified) {
-      return res.status(400).json({ message: "Email already verified" });
-    }
-
-    // ⛔ HARD EXPIRY CHECK (FIXED)
-    if (
-      !user.emailVerificationExpires ||
-      user.emailVerificationExpires.getTime() < Date.now()
-    ) {
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    const isValid = await bcrypt.compare(
-      otp,
-      user.emailVerificationOTP
-    );
-
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
+    user.emailOtp = undefined;
+    user.emailOtpExpires = undefined;
     user.isEmailVerified = true;
-    user.emailVerificationOTP = undefined;
-    user.emailVerificationExpires = undefined;
     await user.save();
 
-    return res.json({
+    res.json({
       success: true,
-      message: "Email verified successfully",
       token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
-    console.error("Verify OTP error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -127,7 +173,7 @@ exports.verifyEmailOTP = async (req, res) => {
 // ======================================================
 // RESEND OTP
 // ======================================================
-exports.resendEmailOTP = async (req, res) => {
+exports.resendEmailOtp = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -145,34 +191,110 @@ exports.resendEmailOTP = async (req, res) => {
       return res.status(400).json({ message: "Email already verified" });
     }
 
-    const otp = generateOTP();
-    const hashedOTP = await bcrypt.hash(otp, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    user.emailVerificationOTP = hashedOTP;
-    user.emailVerificationExpires = new Date(Date.now() + 2 * 60 * 1000);
+    user.emailOtp = hashedOtp;
+    user.emailOtpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // ⏱ HARD 10s TIMEOUT
-    await Promise.race([
-      sendEmail({
-        to: user.email,
-        subject: "Resend OTP - Verify your email",
-        text: `Your new verification code is ${otp}. It expires in 2 minutes.`,
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Email timeout")), 10000)
-      ),
-    ]);
+    await sendEmail({
+      to: user.email,
+      subject: "Your new OTP",
+      html: `
+  <div style="font-family: Arial, Helvetica, sans-serif; background-color:#f6f9fc; padding:40px 0;">
+    <table width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center">
+          <table width="100%" max-width="480" cellspacing="0" cellpadding="0"
+            style="background:#ffffff; border-radius:8px; padding:32px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+            
+            <!-- Logo -->
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <img 
+                  src="https://res.cloudinary.com/dsmzpe5fo/image/upload/v1766946846/AI_E-book_ddhtlh.png"
+                  alt="AI eBook Creator"
+                  height="40"
+                  style="display:block;"
+                />
+              </td>
+            </tr>
+
+            <!-- Title -->
+            <tr>
+              <td style="color:#111827; font-size:20px; font-weight:600; padding-bottom:12px;">
+                Verify your email address
+              </td>
+            </tr>
+
+            <!-- Message -->
+            <tr>
+              <td style="color:#374151; font-size:14px; line-height:22px; padding-bottom:24px;">
+                Use the verification code below to complete your sign-up for
+                <strong>AI eBook Creator</strong>.  
+                This code is valid for the next <strong>10 minutes</strong>.
+              </td>
+            </tr>
+
+            <!-- OTP Box -->
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <div
+                  style="
+                    display:inline-block;
+                    background:#f3f4f6;
+                    padding:14px 24px;
+                    font-size:28px;
+                    font-weight:700;
+                    letter-spacing:6px;
+                    color:#111827;
+                    border-radius:6px;
+                  "
+                >
+                  ${otp}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Security note -->
+            <tr>
+              <td style="color:#6b7280; font-size:13px; line-height:20px; padding-bottom:24px;">
+                If you did not request this code, you can safely ignore this email.
+                For your security, never share this code with anyone.
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="border-top:1px solid #e5e7eb; padding-top:16px; color:#9ca3af; font-size:12px;">
+                © ${new Date().getFullYear()} AI eBook Creator  
+                <br />
+                <a href="https://ai-poweredebookcreater-1.onrender.com" style="color:#6b7280; text-decoration:none;">
+                  your-website.com
+                </a>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+`,
+
+    });
 
     res.json({ success: true, message: "OTP resent successfully" });
   } catch (error) {
-    console.error("Resend OTP error:", error.message);
+    console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
+
 // ======================================================
-// LOGIN USER
+// LOGIN (PASSWORD)
 // ======================================================
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -180,15 +302,8 @@ exports.loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ email }).select("+password");
 
-    if (!user) {
+    if (!user || !user.isEmailVerified) {
       return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // 🚫 BLOCK UNVERIFIED MANUAL USERS
-    if (!user.isEmailVerified && !user.googleId) {
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
     }
 
     const isMatch = await user.matchPassword(password);
@@ -198,10 +313,10 @@ exports.loginUser = async (req, res) => {
 
     res.json({
       message: "Login successful",
+      token: generateToken(user._id),
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id),
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -212,40 +327,16 @@ exports.loginUser = async (req, res) => {
 // GET PROFILE
 // ======================================================
 exports.getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      isPro: user.isPro,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
+  const user = await User.findById(req.user.id);
+  res.json(user);
 };
 
 // ======================================================
 // UPDATE PROFILE
 // ======================================================
 exports.updateUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.name = req.body.name || user.name;
-    const updatedUser = await user.save();
-
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
+  const user = await User.findById(req.user.id);
+  user.name = req.body.name || user.name;
+  await user.save();
+  res.json(user);
 };

@@ -23,48 +23,26 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
-    googleId: {
-      type: String,
-    },
-    avatar: {
-      type: String,
-      default: "",
-    },
-    isPro: {
-      type: Boolean,
-      default: false,
-    },
+    googleId: String,
+    avatar: { type: String, default: "" },
+    isPro: { type: Boolean, default: false },
 
-    // Email verification fields
-    isEmailVerified: {
-      type: Boolean,
-      default: function () {
-        // Google user are already verified
-        return !!this.googleId;
-      },
-    },
-    emailVerificationOTP: {
-      type: String,
-      select: false, // never expose OTP
-    },
-    emailVerificationExpires: {
-      type: Date,
-    },
+    // ✅ OTP EMAIL VERIFICATION
+    emailOtp: { type: String, select: false },
+    emailOtpExpires: Date,
+    isEmailVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Password hashing middleware
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Method to compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model("User", userSchema);

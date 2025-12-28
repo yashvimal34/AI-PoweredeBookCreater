@@ -19,6 +19,9 @@ const AuthSuccess = () => {
 
     const fetchProfile = async () => {
       try {
+        // 🔑 SAVE TOKEN FIRST (THIS WAS MISSING)
+        localStorage.setItem("token", token);
+
         // Fetch user profile using token
         const response = await axiosInstance.get(
           API_PATHS.AUTH.GET_PROFILE,
@@ -29,12 +32,13 @@ const AuthSuccess = () => {
           }
         );
 
-        // Login with real user data
+        // Save user in auth context
         login(response.data, token);
 
         navigate("/dashboard");
       } catch (error) {
         console.error("Auth success failed", error);
+        localStorage.removeItem("token");
         navigate("/login");
       }
     };
@@ -42,7 +46,7 @@ const AuthSuccess = () => {
     fetchProfile();
   }, [navigate, login]);
 
-  return null;
+  return <p className="text-center mt-10">Signing you in…</p>;
 };
 
 export default AuthSuccess;
