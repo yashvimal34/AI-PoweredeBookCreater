@@ -1,75 +1,49 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return context;
 };
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        checkAuthStatus();
-    }, []);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
 
-    const checkAuthStatus = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const userStr = localStorage.getItem("user");
+    if (token && userStr) {
+      setUser(JSON.parse(userStr));
+    }
 
-            if (token && userStr) {
-                const userData = JSON.parse(userStr);
-                setUser(userData);
-                setIsAuthenticated(true);
-            }
-        } catch (error) {
-            console.error("Auth check failed", error);
-            logout();
-        } finally {
-            setLoading(false);
-        }
-    };
+    setLoading(false);
+  }, []);
 
-    const login = (userData, token) => {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(userData));
+  const login = (userData, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+  };
 
-        setUser(userData);
-        setIsAuthenticated(true);
-    };
+  const logout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
 
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
 
-        setUser(null);
-        setIsAuthenticated(false);
-        window.location.href = '/'
-    };
-
-    const updateUser = (updateUserData) => {
-        const newUserData = { ...user, ...updateUserData };
-        localStorage.setItem("user", JSON.stringify(newUserData));
-        setUser(newUserData);
-    };
-
-    const value = {
-        user,
-        loading,
-        isAuthenticated,
-        login,
-        logout,
-        updateUser,
-        checkAuthStatus,
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };
