@@ -58,6 +58,7 @@ const SignupPage = () => {
             label="Full Name"
             name="name"
             icon={User}
+            placeholder="John Doe"
             value={formData.name}
             onChange={handleChange}
             required
@@ -68,6 +69,7 @@ const SignupPage = () => {
             name="email"
             type="email"
             icon={Mail}
+            placeholder="john@example.com"
             value={formData.email}
             onChange={handleChange}
             required
@@ -79,6 +81,7 @@ const SignupPage = () => {
               name="password"
               type={showPassword ? "text" : "password"}
               icon={Lock}
+              placeholder="Create a password"
               value={formData.password}
               onChange={handleChange}
               required

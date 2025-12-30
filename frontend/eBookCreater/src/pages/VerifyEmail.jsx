@@ -9,21 +9,43 @@ import { API_PATHS } from "../utils/apiPaths";
 import { useAuth } from "../context/AuthContext";
 
 const OTP_EXPIRY = 60;
+const OTP_EXPIRY_KEY = "otp_expiry_time";
 
 const VerifyEmail = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState(state?.email || "");
+  const [email] = useState(state?.email || "");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(OTP_EXPIRY);
   const [resending, setResending] = useState(false);
 
+  // 🔐 Restore timer on refresh
   useEffect(() => {
-    if (timer === 0) return;
-    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    const savedExpiry = localStorage.getItem(OTP_EXPIRY_KEY);
+
+    if (savedExpiry) {
+      const remaining = Math.floor(
+        (Number(savedExpiry) - Date.now()) / 1000
+      );
+      setTimer(remaining > 0 ? remaining : 0);
+    } else {
+      const expiryTime = Date.now() + OTP_EXPIRY * 1000;
+      localStorage.setItem(OTP_EXPIRY_KEY, expiryTime);
+      setTimer(OTP_EXPIRY);
+    }
+  }, []);
+
+  // ⏱ Countdown
+  useEffect(() => {
+    if (timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((t) => t - 1);
+    }, 1000);
+
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -33,6 +55,7 @@ const VerifyEmail = () => {
     try {
       setLoading(true);
 
+      // 1️⃣ Verify OTP
       const res = await axiosInstance.post(API_PATHS.AUTH.VERIFY_OTP, {
         email,
         otp,
@@ -40,15 +63,25 @@ const VerifyEmail = () => {
 
       const { token } = res.data;
 
-      const profile = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 2️⃣ STORE TOKEN FIRST (CRITICAL FIX)
+      localStorage.setItem("token", token);
 
-      login(profile.data, token);
+      // 3️⃣ Fetch profile (interceptor will attach token)
+      const profileRes = await axiosInstance.get(
+        API_PATHS.AUTH.GET_PROFILE
+      );
+
+      // 4️⃣ Cleanup
+      localStorage.removeItem(OTP_EXPIRY_KEY);
+
+      // 5️⃣ Login
+      login(profileRes.data, token);
       toast.success("Email verified");
       navigate("/dashboard");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Invalid OTP");
+      toast.error(
+        error.response?.data?.message || "Invalid OTP"
+      );
     } finally {
       setLoading(false);
     }
@@ -58,8 +91,12 @@ const VerifyEmail = () => {
     try {
       setResending(true);
       await axiosInstance.post(API_PATHS.AUTH.RESEND_OTP, { email });
-      toast.success("OTP resent");
+
+      const newExpiry = Date.now() + OTP_EXPIRY * 1000;
+      localStorage.setItem(OTP_EXPIRY_KEY, newExpiry);
       setTimer(OTP_EXPIRY);
+
+      toast.success("OTP resent");
     } catch {
       toast.error("Failed to resend OTP");
     } finally {

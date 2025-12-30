@@ -33,10 +33,14 @@ exports.registerUser = async (req, res) => {
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.emailOtp = hashedOtp;
-    user.emailOtpExpires = Date.now() + 10 * 60 * 1000;
+    user.emailOtpExpires = Date.now() + 1 * 60 * 1000;
     await user.save();
 
-    await sendEmail({
+    res.json({
+      success: true,
+      message: "OTP sent to email",
+    });
+    sendEmail({
       to: user.email,
       subject: "Verify your email - OTP",
       html: `
@@ -121,14 +125,9 @@ exports.registerUser = async (req, res) => {
   </div>
 `,
     });
-
-    res.json({
-      success: true,
-      message: "OTP sent to email",
-    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Email sending failed" });
   }
 };
 
@@ -195,7 +194,7 @@ exports.resendEmailOtp = async (req, res) => {
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.emailOtp = hashedOtp;
-    user.emailOtpExpires = Date.now() + 10 * 60 * 1000;
+    user.emailOtpExpires = Date.now() + 1 * 60 * 1000;
     await user.save();
 
     await sendEmail({
@@ -327,9 +326,12 @@ exports.loginUser = async (req, res) => {
 // GET PROFILE
 // ======================================================
 exports.getProfile = async (req, res) => {
-  const user = await User.findById(req.user.id);
-  res.json(user);
-};
+  if(!req.user) {
+    return res.status(401).json({message: "Not authorized"});
+  }
+  
+  res.json(req.user);
+}
 
 // ======================================================
 // UPDATE PROFILE
