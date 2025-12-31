@@ -25,7 +25,9 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
 
     const [step, setStep] = useState(1);
     const [bookTitle, setBookTitle] = useState("");
-    const [numChapters, setNumChatpers] = useState(5);
+    // numeric value used for logic and a separate string input to allow clearing while typing
+    const [numChapters, setNumChapters] = useState(5);
+    const [numChaptersInput, setNumChaptersInput] = useState(String(5));
     const [aiTopic, setAiTopic] = useState("");
     const [aiStyle, setAiStyle] = useState("Informative");
     const [chapters, setChapters] = useState([]);
@@ -36,7 +38,8 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
     const resetModal = () => {
         setStep(1);
         setBookTitle("");
-        setNumChatpers(5);
+        setNumChapters(5);
+        setNumChaptersInput(String(5));
         setAiTopic("");
         setAiStyle("Informative");
         setChapters([]);
@@ -45,17 +48,24 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
     };
 
     const handleGenerateOutline = async () => {
-        if (!bookTitle || !numChapters) {
+        const requested = parseInt(numChaptersInput, 10);
+        if (!bookTitle || isNaN(requested)) {
             toast.error("Please provide a book title and number of chapters.");
+            return;
+        }
+        if (requested < 2) {
+            toast.error("Please create at least 2 chapters to read.");
             return;
         }
         setIsGeneratingOutline(true);
         try {
+            // sync numeric state
+            setNumChapters(requested);
             const response = await axiosInstance.post(API_PATHS.AI.GENERATE_OUTLINE, {
                 topic: bookTitle,
                 description: aiTopic || "",
                 style: aiStyle,
-                numChapters: numChapters,
+                numChapters: requested,
             });
             setChapters(response.data.outline);
             setStep(2);
@@ -70,9 +80,9 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
     };
 
     const handleChapterChange = (index, field, value) => {
-        const updatedChpaters = [...chapters];
-        updatedChpaters[index][field] = value;
-        setChapters(updatedChpaters);
+        const updatedChapters = [...chapters];
+        updatedChapters[index][field] = value;
+        setChapters(updatedChapters);
     };
 
     const handleDeleteChapter = (index) => {
@@ -85,8 +95,12 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
     };
 
     const handleFinalizingBook = async () => {
-        if (!bookTitle || chapters.length === 0) {
-            toast.error("Book title and at least one chpater are required.");
+        if (!bookTitle) {
+            toast.error("Book title is required.");
+            return;
+        }
+        if (chapters.length < 2) {
+            toast.error("Please create at least 2 chapters to read.");
             return;
         }
         setIsFinalizingBook(true);
@@ -151,8 +165,18 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
                         label="Number of Chpaters"
                         type="number"
                         placeholder="5"
-                        value={numChapters}
-                        onChange={(e) => setNumChatpers(parseInt(e.target.value) || 1)}
+                        value={numChaptersInput}
+                        onChange={(e) => setNumChaptersInput(e.target.value)}
+                        onBlur={() => {
+                            const v = parseInt(numChaptersInput, 10);
+                            if (isNaN(v) || v < 1) {
+                                setNumChapters(1);
+                                setNumChaptersInput("1");
+                            } else {
+                                setNumChapters(v);
+                                setNumChaptersInput(String(v));
+                            }
+                        }}
                         min="1"
                         max="20"
                     />
@@ -226,11 +250,11 @@ const CreateBookModal = ({ isOpen, onClose, onBookCreated }) => {
                                             {index + 1}
                                         </div>
                                         <input type="text"
-                                            value={chapter.title}
-                                            onChange={(e) => handleChaptersChange(index, "title", e.target.value)}
-                                            placeholder="Chpater Title"
-                                            className="flex-1 text-base font-medium text-gray-900 bg-transparent bg-transparent border-none foucs:outline-none focus:ring-0 p-0"
-                                        />
+                                                    value={chapter.title}
+                                                    onChange={(e) => handleChapterChange(index, "title", e.target.value)}
+                                                    placeholder="Chpater Title"
+                                                    className="flex-1 text-base font-medium text-gray-900 bg-transparent bg-transparent border-none foucs:outline-none focus:ring-0 p-0"
+                                                />
                                         <button onClick={() => handleDeleteChapter(index)}
                                             className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 transition-all "
                                             title="Delete Chapter"
