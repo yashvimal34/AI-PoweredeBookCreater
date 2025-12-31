@@ -75,7 +75,7 @@ exports.registerUser = async (req, res) => {
               <td style="color:#374151; font-size:14px; line-height:22px; padding-bottom:24px;">
                 Use the verification code below to complete your sign-up for
                 <strong>AI eBook Creator</strong>.  
-                This code is valid for the next <strong>10 minutes</strong>.
+                This code is valid for the next <strong>1 minute</strong>.
               </td>
             </tr>
 
@@ -232,7 +232,7 @@ exports.resendEmailOtp = async (req, res) => {
               <td style="color:#374151; font-size:14px; line-height:22px; padding-bottom:24px;">
                 Use the verification code below to complete your sign-up for
                 <strong>AI eBook Creator</strong>.  
-                This code is valid for the next <strong>10 minutes</strong>.
+                This code is valid for the next <strong>1 minute</strong>.
               </td>
             </tr>
 
